@@ -27,6 +27,41 @@ __global__ void dummyKernel(/* float *x, */ int n)
 	}
 }
 
+__device__ void vectorAdd_mod(const float *A, const float *B, float *C, int numElements,
+	const int * _mapBlk, int _blkDim, int _gridDim)
+{
+	if (threadIdx.x < _blkDim)
+	{
+		int _oldbid = _mapBlk[blockIdx.x];
+		//actual kernel
+		//////////////////////////////////////////////////////////////////////////
+		int i = blockDim.x * _oldbid + threadIdx.x;
+		if (i < numElements)
+		{
+			C[i] = A[i] + B[i];
+		}
+		//////////////////////////////////////////////////////////////////////////
+	}
+}
+
+__global__ void scheduler(const float * A_A, const float * B_A, float * C_A, int numElements_A, //parametry A
+	const float * A_B, const float * B_B, float * C_B, int numElements_B,		 //parametry B
+	const int * mapBlk, const int * mapKernel,								 //mapowanie
+	int gridDim_A, int blkDim_A, int gridDim_B, int blkDim_B)				 //wymiary
+{
+	int kernel_id = mapKernel[blockIdx.x];
+	if (kernel_id == 0)
+	{
+		//launch kernel A
+		vectorAdd_mod <<<1, 1024>>>(A_A, B_A, C_A, numElements_A);
+	}
+	else
+	{
+		//launch kernel B
+		vectorAdd_mod <<<1, 1024 >>>(A_B, B_B, C_B, numElements_B);
+	}
+}
+
 /**
 * Host main routine
 */
