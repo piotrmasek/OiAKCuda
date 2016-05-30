@@ -1,0 +1,12 @@
+vectorAdd + dummy kernel:
+duration:	243.104 us
+grid size:	489
+block size:	1024
+=====================
+block latency:	0.5 us 
+mem bandwidth:	25.126 read, 12.562 write, 37.688 total [GB/s]
+
+vectorAdd:
+duration 195.137 us
+
+block lat:	0.4 us
