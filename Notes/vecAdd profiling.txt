@@ -8,5 +8,4 @@ mem bandwidth:	25.126 read, 12.562 write, 37.688 total [GB/s]
 
 vectorAdd:
 duration 195.137 us
-
 block lat:	0.4 us
