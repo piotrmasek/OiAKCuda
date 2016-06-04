@@ -30,22 +30,20 @@ __global__ void scheduler(const float * A_A, const float * B_A, float * C_A, int
 	const float * A_B, const float * B_B, float * C_B, int numElements_B,		 //parametry B
 	const int * mapBlk, const int * mapKernel,								 //mapowanie
 	int gridDim_A, int blkDim_A, int gridDim_B, int blkDim_B)				 //wymiary
-{
-	float a = A_A[blockIdx.x];
-	
-	//int kernel_id = mapKernel[blockIdx.x];
-	//if (kernel_id == 0)
-	//{
-	//	//launch kernel A
-	//	vectorAdd_mod(A_A, B_A, C_A, numElements_A,
-	//		mapBlk, blkDim_A, gridDim_A);
-	//}
-	//else
-	//{
-	//	//launch kernel B
-	//	vectorAdd_mod(A_B, B_B, C_B, numElements_B, 
-	//		mapBlk, blkDim_B, gridDim_B);
-	//}
+{	
+	int kernel_id = mapKernel[blockIdx.x];
+	if (kernel_id == 0)
+	{
+		//launch kernel A
+		vectorAdd_mod(A_A, B_A, C_A, numElements_A,
+			mapBlk, blkDim_A, gridDim_A);
+	}
+	else
+	{
+		//launch kernel B
+		vectorAdd_mod(A_B, B_B, C_B, numElements_B, 
+			mapBlk, blkDim_B, gridDim_B);
+	}
 }
 
 void compute_mapping(int * mapKernel, int * mapBlk, size_t mapSize, int gridDim_A, int gridDim_B, int smAlloc_A, int smAlloc_B)
@@ -120,8 +118,8 @@ int main(void)
 	err = cudaMalloc((void **)&d_C_B, size);
 
 	
-	err = cudaMemcpy(d_mapBlk, mapBlk, mapSize * sizeof(int), cudaMemcpyHostToDevice);
-	err = cudaMemcpy(d_mapKernel, mapKernel, mapSize * sizeof(int), cudaMemcpyHostToDevice);
+	err = cudaMemcpy(d_mapBlk, mapBlk, mapBytes, cudaMemcpyHostToDevice);
+	err = cudaMemcpy(d_mapKernel, mapKernel, mapBytes, cudaMemcpyHostToDevice);
 
 	err = cudaMemcpy(d_A_A, h_A, size, cudaMemcpyHostToDevice);
 	err = cudaMemcpy(d_A_B, h_A, size, cudaMemcpyHostToDevice);
@@ -132,7 +130,7 @@ int main(void)
 
 	scheduler <<< mapSize, threadsPerBlock >>>(d_A_A, d_B_A, d_C_A, numElements,
 		d_A_B, d_B_B, d_C_B, numElements,
-		mapBlk, mapKernel, blocksPerGrid, threadsPerBlock, blocksPerGrid, threadsPerBlock
+		d_mapBlk, d_mapKernel, blocksPerGrid, threadsPerBlock, blocksPerGrid, threadsPerBlock
 		);
 	
 	cudaDeviceSynchronize();
