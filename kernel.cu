@@ -6,6 +6,16 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
+static void HandleError(cudaError_t err,
+	const char *file,
+	int line) {
+	if (err != cudaSuccess) {
+		printf("%s in %s at line %d\n", cudaGetErrorString(err),
+			file, line);
+		exit(EXIT_FAILURE);
+	}
+}
+#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
 
 __device__ void vectorAdd_mod(const float *A, const float *B, float *C, int numElements,
@@ -72,8 +82,6 @@ void compute_mapping(int * mapKernel, int * mapBlk, size_t mapSize, int gridDim_
 */
 int main(void)
 {
-	cudaError_t err = cudaSuccess;
-
 	int numElements = 500000;
 	int threadsPerBlock = 1024;
 	int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
@@ -95,37 +103,37 @@ int main(void)
 	int * mapKernel = (int*)malloc(mapBytes);
 
 	compute_mapping(mapKernel, mapBlk, mapSize, blocksPerGrid, blocksPerGrid, 1, 1);
-
+	
 	int * d_mapBlk = NULL;
-	err = cudaMalloc((void **)&d_mapBlk, mapBytes);
+	HANDLE_ERROR(cudaMalloc((void **)&d_mapBlk, mapBytes));
 	
 	int * d_mapKernel = NULL;
-	err = cudaMalloc((void **)&d_mapKernel, mapBytes);
+	HANDLE_ERROR(cudaMalloc((void **)&d_mapKernel, mapBytes));
 
 	float *d_A_A = NULL;
-	err = cudaMalloc((void **)&d_A_A, size);
+	HANDLE_ERROR(cudaMalloc((void **)&d_A_A, size));
 	float *d_B_A = NULL;
-	err = cudaMalloc((void **)&d_B_A, size);
+	HANDLE_ERROR(cudaMalloc((void **)&d_B_A, size));
 
 	float *d_A_B = NULL;
-	err = cudaMalloc((void **)&d_A_B, size);
+	HANDLE_ERROR(cudaMalloc((void **)&d_A_B, size));
 	float *d_B_B = NULL;
-	err = cudaMalloc((void **)&d_B_B, size);
+	HANDLE_ERROR(cudaMalloc((void **)&d_B_B, size));
 
 	float *d_C_A = NULL;
-	err = cudaMalloc((void **)&d_C_A, size);
+	HANDLE_ERROR(cudaMalloc((void **)&d_C_A, size));
 	float *d_C_B = NULL;
-	err = cudaMalloc((void **)&d_C_B, size);
+	HANDLE_ERROR(cudaMalloc((void **)&d_C_B, size));
 
 	
-	err = cudaMemcpy(d_mapBlk, mapBlk, mapBytes, cudaMemcpyHostToDevice);
-	err = cudaMemcpy(d_mapKernel, mapKernel, mapBytes, cudaMemcpyHostToDevice);
+	HANDLE_ERROR(cudaMemcpy(d_mapBlk, mapBlk, mapBytes, cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(d_mapKernel, mapKernel, mapBytes, cudaMemcpyHostToDevice));
 
-	err = cudaMemcpy(d_A_A, h_A, size, cudaMemcpyHostToDevice);
-	err = cudaMemcpy(d_A_B, h_A, size, cudaMemcpyHostToDevice);
+	HANDLE_ERROR(cudaMemcpy(d_A_A, h_A, size, cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(d_A_B, h_A, size, cudaMemcpyHostToDevice));
 
-	err = cudaMemcpy(d_B_A, h_B, size, cudaMemcpyHostToDevice);
-	err = cudaMemcpy(d_B_B, h_B, size, cudaMemcpyHostToDevice);
+	HANDLE_ERROR(cudaMemcpy(d_B_A, h_B, size, cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(d_B_B, h_B, size, cudaMemcpyHostToDevice));
 
 
 	scheduler <<< mapSize, threadsPerBlock >>>(d_A_A, d_B_A, d_C_A, numElements,
@@ -135,34 +143,22 @@ int main(void)
 	
 	cudaDeviceSynchronize();
 	
-	err = cudaGetLastError();
-
-	if (err != cudaSuccess)
-	{
-		fprintf(stderr, "Failed to launch scheduler kernel (error code %s)!\n", cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}
+	HANDLE_ERROR(cudaGetLastError());
 
 	// Copy the device result vector in device memory to the host result vector
 	// in host memory.
 	printf("Copy output data from the CUDA device to the host memory\n");
-	err = cudaMemcpy(h_C, d_C_A, size, cudaMemcpyDeviceToHost);
-
-	if (err != cudaSuccess)
-	{
-		fprintf(stderr, "Failed to copy vector C from device to host (error code %s)!\n", cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}
+	HANDLE_ERROR(cudaMemcpy(h_C, d_C_A, size, cudaMemcpyDeviceToHost));
 
 	// Free device global memory
-	err = cudaFree(d_A_A);
-	err = cudaFree(d_A_B);
-	err = cudaFree(d_B_A);
-	err = cudaFree(d_B_B);
-	err = cudaFree(d_C_A);
-	err = cudaFree(d_C_B);
-	err = cudaFree(d_mapKernel);
-	err = cudaFree(d_mapBlk);
+	HANDLE_ERROR(cudaFree(d_A_A));
+	HANDLE_ERROR(cudaFree(d_A_B));
+	HANDLE_ERROR(cudaFree(d_B_A));
+	HANDLE_ERROR(cudaFree(d_B_B));
+	HANDLE_ERROR(cudaFree(d_C_A));
+	HANDLE_ERROR(cudaFree(d_C_B));
+	HANDLE_ERROR(cudaFree(d_mapKernel));
+	HANDLE_ERROR(cudaFree(d_mapBlk));
 
 	// Free host memory
 	free(h_A);
@@ -177,13 +173,7 @@ int main(void)
 	// needed to ensure correct operation when the application is being
 	// profiled. Calling cudaDeviceReset causes all profile data to be
 	// flushed before the application exits
-	err = cudaDeviceReset();
-
-	if (err != cudaSuccess)
-	{
-		fprintf(stderr, "Failed to deinitialize the device! error=%s\n", cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}
+	HANDLE_ERROR(cudaDeviceReset());
 
 	printf("Done\n");
 	return 0;
