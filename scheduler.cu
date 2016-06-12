@@ -113,7 +113,7 @@ int main(void)
 
 	//////////////////////////////////////////////////////////////////////////
 	//vecAdd init
-	int va_numElements = 1000000;
+	int va_numElements = 50000;
 	int va_threadsPerBlock = 1024;
 	int va_blocksPerGrid = (va_numElements + va_threadsPerBlock - 1) / va_threadsPerBlock;
 	size_t va_size = va_numElements * sizeof(float);
@@ -142,7 +142,7 @@ int main(void)
 	
 	//////////////////////////////////////////////////////////////////////////
 	//BlackScholes init
-	int bs_numOpt = 1000000;
+	int bs_numOpt = 100000;
 	int bs_threadsPerBlock = 128;
 	int bs_blocksPerGrid = (bs_numOpt + bs_threadsPerBlock - 1) / bs_threadsPerBlock;
 	int bs_size = bs_numOpt * sizeof(float);
